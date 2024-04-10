@@ -1,0 +1,118 @@
+---
+  spark_executor_memory:
+      default: 4
+      range:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+  spark_driver_memory:
+      default: 1
+      range:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+  spark_shuffle_accurateBlockThreshold:
+      default: 104857600
+      range:
+        - 83886080
+        - 94371840
+        - 104857600
+        - 115343360
+        - 125829120
+  spark_broadcast_blockSize:
+      default: 4
+      range:
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+  spark_executor_cores:
+    default: 7
+    range:
+      #        - 1
+      #        - 2
+      #        - 3
+      #        - 4
+      - 5
+      - 6
+      - 7
+      - 8
+  spark_shuffle_file_buffer:
+    default: 128
+    range:
+      - 64
+      - 128
+      - 256
+      - 512
+  spark_task_cpus:
+    default: 3
+    range:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+  spark_reducer_maxSizeInFlight:
+    default: 43
+    range:
+      - 38
+      - 43
+      - 53
+      - 58
+  jvm_max_gc_pause:
+    default: 200
+    range:
+      - 100
+      - 200
+      - 300
+      - 400
+  jvm_gc_collect:
+    default: 1      #"+UseParallelGC"
+    range:
+      - 0        #"+UseSerialGC"
+      - 1        #"+UseParallelGC"
+      - 2        #"+UseConcMarkSweepGC"
+      - 3        #"+UseG1GC"
+
+
+
+
+
+
+
+
+    
+    
+
+    
+
+
+    
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+    
+    
+    
+    

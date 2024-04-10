@@ -1,0 +1,20 @@
+!!python/object:lib.other.TestConfig
+clients: 16
+exist: delete
+hosts: !!python/object:lib.other.HostConifg
+  master: master
+  slave1: worker1
+  slave2: worker2
+optimizer: !!python/object:lib.other.OptimizerConfig
+  extra_vars:
+    acq: ucb
+  iter_limit: 40
+  name: restune
+  reboot_interval: 500
+  repitition: 5
+target: target_spark
+task_name: spark-bopp-test
+tester: hibench
+tune_app: true
+tune_os: false
+workload: bayes.conf

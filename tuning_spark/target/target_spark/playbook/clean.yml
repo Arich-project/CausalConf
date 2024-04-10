@@ -1,0 +1,27 @@
+- hosts: master,worker1,worker2
+  gather_facts: false
+  vars:
+    ansible_sudo_pass: 123
+    db_name: spark
+    spark_home: "/home/hmj/sd_spark/{{db_name}}/{{task_name}}"
+    spark_logs: "{{spark_home}}/spark/logs"
+    spark_work: "{{spark_home}}/spark/work"
+  remote_user: hmj
+
+  tasks:
+    - name: clear spark_logs
+      file:
+        path: "{{spark_logs}}"
+        state: "{{item}}"
+      with_items:
+        - absent
+        - directory
+      ignore_errors: true
+    - name: clear spark_work
+      file:
+        path: "{{spark_work}}"
+        state: "{{item}}"
+      with_items:
+        - absent
+        - directory
+      ignore_errors: true

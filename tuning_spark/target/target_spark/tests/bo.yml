@@ -1,0 +1,20 @@
+---
+  # task_name: TODO
+  target: target_spark
+  hosts:
+    master: master
+    slave1: worker1
+    slave2: worker2
+  workload: bayes.conf
+  exist:
+  tune_os: no
+  tune_app: yes
+  optimizer:
+    name: bo
+    iter_limit: 40
+    reboot_interval: 500
+    repitition: 5
+    extra_vars:
+      acq: ei
+  clients: 16
+  tester: hibench

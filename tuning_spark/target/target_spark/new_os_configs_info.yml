@@ -1,0 +1,113 @@
+---
+  os_columns:
+    - swappiness
+    - dirty_ratio
+    - dirty_background_ratio
+    - dirty_expire_centisecs
+    - nr_requests
+    - read_ahead_kb
+
+  hard_perf_columns:
+    - migrations
+    - context-switches        # 1
+    - cache-misses
+    - cache-references
+    - branch-misses
+    - branch-load-misses
+    - major-faults
+    - minor-faults
+    - page-faults
+    - cycles
+    - raw_syscalls_sys_enter
+    - raw_syscalls_sys_exit
+    - instructions
+    - L1-dcache-load-misses
+    - L1-dcache-loads
+    - L1-dcache-stores
+    - LLC-load-misses
+    - LLC-store-misses
+    - LLC-stores
+    - node-load-misses
+    - node-store-misses
+    - mem-loads
+    - mem-stores
+    - branch-loads
+
+  app_perf_columns:
+    - Executor_Deserialize_Time
+    - Executor_Deserialize_CPU_Time
+    - Executor_Run_Time
+    - Executor_CPU_Time
+    - Result_Size
+    - JVM_GC_Time
+    - Result_Serialization_Time
+    - Memory_Bytes_Spilled         # no change in many workload
+    - Disk_Bytes_Spilled           # no change in many workload
+#    - Remote_Blocks_Fetched       # value confilct
+    - Local_Blocks_Fetched        # value confilct
+    - Fetch_Wait_Time
+    - Remote_Bytes_Read
+#    - Remote_Bytes_Read_To_Disk   # aggregation and wordcount not found
+    - Local_Bytes_Read
+    - Total_Records_Read           # no change in many workload
+
+  options_vaules:
+      swappiness:
+          file: /proc/sys/vm/swappiness
+          default: 60
+          range:
+              - 20
+              - 40
+              - 60
+              - 80
+          # bucket_num: 7
+          # float: yes # enable this to allow it to be non-int
+      dirty_ratio:
+          file: /proc/sys/vm/dirty_ratio
+          default: 20
+          range:
+              - 10
+              - 20
+              - 40
+              - 60
+              - 80
+          bucket_num: 6
+
+      dirty_background_ratio:
+          file: /proc/sys/vm/dirty_background_ratio
+          default: 10
+          range:
+              - 0
+              - 10
+              - 30
+              - 50
+              - 70
+              - 90
+
+      dirty_expire_centisecs:
+          file: /proc/sys/vm/dirty_expire_centisecs
+          default: 3000
+          range:
+              - 1000
+              - 2000
+              - 3000
+              - 4000
+              - 5000
+
+      nr_requests:
+          file: /sys/block/sda/queue/nr_requests
+          default: 128
+          range:
+              - 64
+              - 128
+              - 192
+              - 256
+
+      read_ahead_kb:
+          file: /sys/block/sda/queue/read_ahead_kb
+          default: 128
+          range:
+              - 64
+              - 128
+              - 256
+              - 512

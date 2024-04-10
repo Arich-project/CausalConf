@@ -1,0 +1,228 @@
+---
+- hosts: master,worker1,worker2
+  gather_facts: false
+  vars:
+    ansible_sudo_pass: 123
+    db_name: spark
+    spark_home: "/home/hmj/sd_spark/{{db_name}}/{{task_name}}"
+    local_sp_config_env: ../others/spark-env.sh
+    sp_config_env: "{{spark_home}}/spark/conf/spark-env.sh"
+    local_result_dir: "../results/{{task_name}}"
+  remote_user: hmj
+
+  pre_tasks:
+    - name: load app_config information
+      include_vars:
+        file: "{{local_result_dir}}/{{task_id}}_app_config.yml"
+        name: app_config
+  tasks:
+    - name: copy spark's spark-env.sh
+      template:
+        src: "{{local_sp_config_env}}"
+        dest: "{{sp_config_env}}"  
+
+- hosts: "{{host}}"
+  vars:
+    # required extra vars:
+    #   - host
+    #   - target
+    #   - task_name
+    #   - task_id
+    #   - task_rep
+    #   - workload_path
+    ansible_sudo_pass: 123
+
+    db_name: spark
+    apt_requirements:
+      # - openjdk-8-jdk
+
+    tester_home: "/home/hmj/sd_hibench/{{db_name}}/{{task_name}}"
+    spark_home: "/home/hmj/sd_spark/{{db_name}}/{{task_name}}"
+    local_sp_config_env: ../others/spark-env.sh
+    sp_config_env: "{{spark_home}}/spark/conf/spark-env.sh"
+
+    local_tester_src: "../others/hibench.tar.gz"
+    tester_src: "{{tester_home}}/../hibench.tar.gz"
+    tester_server: "{{tester_home}}/hibench"
+    tester_conf: "{{tester_server}}/conf"
+    tester_bin: "{{tester_server}}/bin/workloads/"
+    local_hadoop_config_template: ../others/hibench/hadoop.conf
+    local_hibench_config_template: ../others/hibench/hibench.conf
+    local_spark_config_template: ../others/hibench/spark.conf
+    hadoop_config: "{{tester_conf}}/hadoop.conf"
+    hibench_config: "{{tester_conf}}/hibench.conf"
+    spark_config: "{{tester_conf}}/spark.conf"
+    
+    local_re_report_py_template: ../temp_file/re_report.py
+    re_report_py: "{{tester_server}}/report"
+
+    # this file/workload is like /target_spark/workload/***.conf
+    local_hibench_workload: "{{workload_path}}"
+    hibench_workload: "{{tester_home}}/hibench/conf/workloads/ml/bayes.conf"   ##
+
+
+    old_result_path: "{{tester_server}}/report/hibench"
+    local_result_dir: "../results/{{task_name}}"
+
+    local_event_log_dir: "/home/hmj/spark-events"
+    new_event_log_dir: "../event_logs"
+
+    hibench_type: "ml/bayes"     #"micro/wordcount"  #  "micro/wordcount"  #"sql/join"  #"ml/bayes"     #  "micro/terasort"  #"sql/aggregation"  # "websearch/pagerank" #
+    n_client: 16
+  remote_user: hmj
+
+  pre_tasks:
+#    - name: Check Python version
+#      shell: python3 --version
+#      register: python_version
+#    - name: Print Python version
+#      debug:
+#        var: python_version.stdout
+    - name: load app_config information
+      include_vars:
+        file: "{{local_result_dir}}/{{task_id}}_app_config.yml"
+        name: app_config
+    - name: ensure jdk
+      apt:
+        name: "{{apt_requirements}}"
+      become: yes
+    - name: create folders
+      with_items:
+        - "{{tester_home}}"
+      file:
+        path: "{{item}}"
+        state: directory
+        recurse: yes
+    - name: copy archive
+      copy:
+        src: "{{local_tester_src}}"
+        dest: "{{tester_src}}"
+    - name: unarchive
+      become: yes
+      become_method: sudo
+      unarchive:
+        src: "{{tester_src}}"
+        dest: "{{tester_home}}"
+        remote_src: yes
+
+    - name: copy hibench workload
+      copy:
+        src: "{{local_hibench_workload}}"
+        dest: "{{hibench_workload}}"
+     
+    - name: copy hadoop config
+      template:
+        src: "{{local_hadoop_config_template}}"
+        dest: "{{hadoop_config}}"
+    - name: copy hibench config
+      template:
+        src: "{{local_hibench_config_template}}"
+        dest: "{{hibench_config}}"
+    - name: copy spark config
+      template:
+        src: "{{local_spark_config_template}}"
+        dest: "{{spark_config}}"
+        
+    - name: copy re_report.py
+      template:
+        src: "{{local_re_report_py_template}}"
+        dest: "{{re_report_py}}"
+
+    - name: start spark_standlone
+      shell: "JAVA_HOME=/usr/lib/jvm/jdk1.8.0_211 {{spark_home}}/spark/sbin/start-all.sh"
+
+    - name: data prepare
+      become: yes
+      become_method: sudo
+      shell: "JAVA_HOME=/usr/lib/jvm/jdk1.8.0_211 {{tester_bin}}{{hibench_type}}/prepare/prepare.sh"
+      async: 700
+      poll: 5
+      when: "{{task_id}} == 0 and {{task_rep}} ==0"
+
+    - name: running
+      become: yes
+      become_method: sudo
+      shell: "JAVA_HOME=/usr/lib/jvm/jdk1.8.0_211 perf stat -e cycles,instructions,context-switches,cache-references,cache-misses,L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,migrations,minor-faults,major-faults,branch-loads,branch-load-misses,emulation-faults,alignment-faults,branch-misses,raw_syscalls:sys_enter,raw_syscalls:sys_exit,LLC-load-misses,LLC-loads,LLC-store-misses,LLC-stores,page-faults,node-load-misses,node-loads,node-store-misses,node-stores,mem-loads,mem-stores,cache-references -o /home/hmj/cur {{tester_bin}}{{hibench_type}}/spark/run.sh"  # JAVA_HOME=/usr/lib/jvm/jdk1.8.0_211  # vim /etc/environment to change JAVA_HOME
+      async: 1200
+      poll: 30
+#      ignore_errors: true
+
+    - name: stop spark_standlone
+      shell: "JAVA_HOME=/usr/lib/jvm/jdk1.8.0_211 {{spark_home}}/spark/sbin/stop-all.sh"
+
+#    - name: kill hadoop
+#      shell: "JAVA_HOME=/usr/lib/jvm/jdk1.8.0_211 /home/hmj/sd_hadoop/spark/spark-bodropout-test/hadoop/sbin/stop-all.sh"
+#    - name: wait 
+#      shell: "sleep 60s"
+
+    - name: hibench_report re_format
+      shell: "python3 /home/hmj/sd_hibench/spark/spark-bopp-test/hibench/report/re_report.py {{task_id}}_run_result_{{task_rep}} {{hibench_type}}"
+      ignore_errors: true
+      
+    - name: fetch run result
+      become: yes
+      become_method: sudo
+      fetch:
+        src: "{{old_result_path}}"
+        dest: "{{local_result_dir}}/{{task_id}}_run_result_{{task_rep}}"
+        flat: yes
+      ignore_errors: true
+
+#   # get perf samples
+    - name: fetch per events
+      become: yes
+      become_method: sudo
+      fetch:
+        src: "/home/hmj/cur"
+        dest: "/home/hmj/tuning_spark/target/target_spark/event_perf/{{hibench_type}}/{{task_id}}_run_event_perf_{{task_rep}}"
+        flat: yes
+      ignore_errors: true
+
+    - name: get the name of event_logs
+      find:
+        path: "{{local_event_log_dir}}"
+        file_type: "file"
+      register: "findlog"
+
+#     path: /home/hmj/spark-events/...
+    - name: fetch spark events
+      become: yes
+      become_method: sudo
+      fetch:
+        src: "{{item.path}}"
+        dest: "{{new_event_log_dir}}/{{hibench_type}}/{{task_id}}_run_envent_log_{{task_rep}}"
+        flat: yes
+      ignore_errors: true
+      with_items: "{{findlog.files}}"
+
+    - name: extract the feature_vector of log
+      shell: "python3.9 /home/hmj/tuning_spark/target/target_spark/temp_file/re_spark_events.py  {{task_id}}_run_envent_log_{{task_rep}}  {{hibench_type}}"
+      vars:
+        ansible_python_interpreter: /usr/bin/python3.9
+      ignore_errors: true
+#      when: "{{task_rep}} ==0"
+
+    - name: extract the feature_vector of perf
+      shell: "python3 /home/hmj/tuning_spark/target/target_spark/temp_file/re_perf_events.py {{task_id}}_run_event_perf_{{task_rep}}  {{hibench_type}}"
+      ignore_errors: true
+
+    - name: clear report
+      become: yes
+      become_method: sudo
+      file:
+        path: "{{tester_server}}/report"
+        state: "{{item}}"
+      with_items:
+        - absent
+        - directory
+
+    - name: clear event_logs
+      become: yes
+      become_method: sudo
+      file:
+        path: "/home/hmj/spark-events/"
+        state: "{{item}}"
+      with_items:
+        - absent
+        - directory
+
