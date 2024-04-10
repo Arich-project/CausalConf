@@ -383,7 +383,7 @@ async def main(test_config,os_setting,app_setting,tune_conf):
         print(bo_observe_samples[unique_tune_configs])
         return
     dict_ranges = graph.get_interventional_ranges()
-    alpha_coverage, hull_obs, coverage_total = 1, 1, 1     # 用于观察-干预权衡的greedy策略
+    alpha_coverage, hull_obs, coverage_total = 1, 1, 1     
     data_x_list, data_y_list, best_intervention_value, opt_y, best_variable, samples_mean_opty = define_initial_data_CBO(observational_samples.copy(),
                                                                                 before_dataxlist, before_dataylist, task_id, update_model_index,
                                                                                 num_interventions, unique_tune_configs, causal_models, MIS, task, name_index=0)
